@@ -18,32 +18,51 @@ struct ToDoListView: View {
         NavigationStack {
             List {
                 ForEach(toDos) { toDo in
-                    HStack {
-                        Image(systemName: toDo.isCompleted ? "checkmark.rectangle" : "rectangle")
-                            .onTapGesture {
-                                toDo.isCompleted.toggle()
-                                guard let _ = try? modelContext.save() else {
-                                    print("😡 ERROR: Save after .toggle on ToDoListView did not work")
-                                    return
+                    VStack (alignment: .leading) {
+                        HStack {
+                            Image(systemName: toDo.isCompleted ? "checkmark.rectangle" : "rectangle")
+                                .onTapGesture {
+                                    toDo.isCompleted.toggle()
+                                    guard let _ = try? modelContext.save() else {
+                                        print("😡 ERROR: Save after .toggle on ToDoListView did not work")
+                                        return
+                                    }
+                                }
+                            
+                            NavigationLink {
+                                DetailView(toDo: toDo)
+                            } label: {
+                                Text(toDo.item)
+                            }
+                            .swipeActions {
+                                Button("Delete", role: .destructive) {
+                                    modelContext.delete(toDo)
+                                    guard let _ = try? modelContext.save() else {
+                                        print("😡 ERROR: Save on DetailView did not work")
+                                        return
+                                    }
                                 }
                             }
-                        
-                        NavigationLink {
-                            DetailView(toDo: toDo)
-                        } label: {
-                            Text(toDo.item)
                         }
-                        .swipeActions {
-                            Button("Delete", role: .destructive) {
-                                modelContext.delete(toDo)
-                                guard let _ = try? modelContext.save() else {
-                                    print("😡 ERROR: Save on DetailView did not work")
-                                    return
-                                }
+                        .font(.title2)
+                        
+                        HStack {
+                            Text(toDo.dueDate.formatted(date: .abbreviated, time: .shortened))
+                                .foregroundStyle(.secondary)
+                            
+                            if toDo.reminderIsOn {
+                                Image(systemName: "calendar.badge.clock")
+                                    .symbolRenderingMode(.multicolor)
                             }
                         }
                     }
-                    .font(.title2)
+                }
+                .onDelete { indexSet in
+                    indexSet.forEach({modelContext.delete(toDos[$0])})
+                    guard let _ = try? modelContext.save() else {
+                        print("😡 ERROR: Save after .delete in ToDoListView did not work")
+                        return
+                    }
                 }
             }
             .navigationBarTitle("Dragon List")
@@ -69,5 +88,5 @@ struct ToDoListView: View {
 
 #Preview {
     ToDoListView()
-        .modelContainer(for: ToDo.self, inMemory: true)
+        .modelContainer(ToDo.preview)
 }
